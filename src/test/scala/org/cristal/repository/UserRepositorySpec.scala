@@ -3,6 +3,7 @@ package org.cristal.repository
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.util.Timeout
+import com.github.t3hnar.bcrypt._
 import org.cristal.model.{NewUser, User}
 import org.cristal.repository.UserRepository.UserCreated
 import org.cristal.repository.dao.UserDAO
@@ -26,12 +27,14 @@ class UserRepositorySpec(_system: ActorSystem) extends TestKit(_system) with Imp
   "An UserRepository Actor" should {
     "Create a new user" in {
       val userDAO = mock[UserDAO]
+      val passowod = "my_password"
+      val encryptedPassword = passowod.bcrypt
       when(userDAO.insert(any())).thenReturn(Future.successful(()))
-      val userRepository = system.actorOf(UserRepgository.props(userDAO))
-      val newUser = NewUser("name", "my_password")
+      val userRepository = system.actorOf(UserRepository.props(userDAO))
+      val newUser = NewUser("name", passowod, "my@email.com", "John", "Doe")
       userRepository ! UserRepository.CreateUser(newUser, self)
       expectMsgPF() {
-        case UserCreated(User(_, _, _)) => ()
+        case UserCreated(User("name", encryptedPassword, "my@email.com", "John", "Doe")) => ()
       }
     }
   }

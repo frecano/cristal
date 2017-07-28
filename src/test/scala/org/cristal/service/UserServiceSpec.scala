@@ -20,7 +20,7 @@ class UserServiceSpec(_system: ActorSystem) extends TestKit(_system) with Implic
     "send a create message to a repository user actor" in {
       val userRepository = TestProbe()
       val userService = system.actorOf(UserService.props(userRepository.ref))
-      val newUser = NewUser("name", "password")
+      val newUser = NewUser("name", "my_password", "my@email.com", "John", "Doe")
       userService ! UserService.CreateUser(newUser)
       userRepository.expectMsg(500 millis, UserRepository.CreateUser(newUser, self))
     }

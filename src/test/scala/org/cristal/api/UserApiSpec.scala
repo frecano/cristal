@@ -2,6 +2,7 @@ package org.cristal.api
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.server.{Route, ValidationRejection}
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.testkit.TestProbe
 import org.cristal.api.helper.JsonSupport
@@ -25,19 +26,24 @@ class UserApiSpec extends WordSpec with Matchers with ScalatestRouteTest with Ev
     "response with an OK and a new created user to a POST to /user" in {
       val requestJson =
         """{
-          |"username": "name",
-          |"password": "my_password"
+          |"username": "nickname",
+          |"password": "my_password",
+          |"email": "myvalid@email.com",
+          |"firstName": "John",
+          |"lastName": "Doe"
           |}""".stripMargin
 
       val responseJson = "{" +
-        "\"id\":1," +
-        "\"username\":\"name\"," +
+        "\"email\":\"myvalid@email.com\"," +
+        "\"username\":\"nickname\"," +
+        "\"lastName\":\"Doe\"," +
+        "\"firstName\":\"John\"," +
         "\"password\":\"my_password\"" +
         "}"
 
       val handler = TestProbe()
-      val newUser = NewUser("name", "my_password")
-      val userCreated = User(1, "name", "my_password")
+      val newUser = NewUser("nickname", "my_password", "myvalid@email.com", "John", "Doe")
+      val userCreated = User("nickname", "my_password", "myvalid@email.com", "John", "Doe")
 
       Post("/user", HttpEntity(MediaTypes.`application/json`, requestJson)) ~>
         getUserRoute(handler.ref) ~> check {
@@ -48,6 +54,23 @@ class UserApiSpec extends WordSpec with Matchers with ScalatestRouteTest with Ev
             responseAs[String] shouldEqual responseJson
           }
         }
+    }
+
+    "response with a bad request if the email is not valid" in {
+      val requestJson =
+        """{
+          |"username": "nickname",
+          |"password": "my_password",
+          |"email": "invalid@email",
+          |"firstName": "John",
+          |"lastName": "Doe"
+          |}""".stripMargin
+      val handler = TestProbe()
+      Post("/user", HttpEntity(MediaTypes.`application/json`, requestJson)) ~>
+        Route.seal(getUserRoute(handler.ref)) ~> check {
+        status shouldEqual StatusCodes.BadRequest
+        responseAs[String] shouldEqual "requirement failed: invalid email"
+      }
     }
 
     "response with a successful response to the /user/id path" in {

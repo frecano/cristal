@@ -29,7 +29,10 @@ class UserDAOImpl(implicit executor: ExecutionContext)  extends UserDAO with Use
 
   def userToDocument(user: User) = BSONDocument(
     "username" -> user.username,
-    "password" -> user.password
+    "password" -> user.password,
+    "first_name" -> user.firstName,
+    "last_name" -> user.lastName,
+    "email" -> user.email
   )
 }
 
